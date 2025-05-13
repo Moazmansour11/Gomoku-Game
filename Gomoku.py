@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-"""
-Gomoku / Five-in-a-Row – Tkinter GUI
-
-• On launch asks:  Human vs AI  OR  AI vs AI
-• If Human is playing, they are WHITE; AI is always BLACK.
-• 15 × 15 board – first to connect five stones wins.
-• AI uses depth-limited minimax (negamax) with α-β pruning.
-"""
-
 import math
 import random
 import tkinter as tk
@@ -173,7 +163,7 @@ def minimax(board, depth, alpha, beta, maximizing, player):
         return best_move, value
 
 
-def ai_move(board, player, depth=3):
+def ai_move(board, player, depth=2):  # depth is always fixed at 2
     move, _ = minimax(board, depth, -math.inf, math.inf, True, player)
     return move or random.choice(get_valid_moves(board))
 
@@ -182,13 +172,13 @@ def ai_move(board, player, depth=3):
 # Tkinter GUI
 # ───────────────────────────────────
 class GomokuGUI:
-    CELL   = 36
+    CELL   = 42
     MARGIN = 40
     RADIUS = CELL // 2 - 2
 
-    def __init__(self, human_vs_ai: bool, depth: int = 2):
+    def __init__(self, human_vs_ai: bool):
         self.human_vs_ai = human_vs_ai
-        self.depth   = depth
+        self.depth   = 2  # Fixed depth for AI moves
         self.board   = create_board()
         self.current = WHITE if human_vs_ai else BLACK   # human starts as White
         self.finished = False
@@ -232,9 +222,7 @@ class GomokuGUI:
         cy = self.MARGIN + x * self.CELL
         fill = "black" if player == BLACK else "white"
         outline = "white" if player == BLACK else "black"
-        self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS,
-                                cx + self.RADIUS, cy + self.RADIUS,
-                                fill=fill, outline=outline, width=2)
+        self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS, cx + self.RADIUS, cy + self.RADIUS,fill=fill, outline=outline, width=2)
 
     # ─────────────────── game flow
     def pixel_to_cell(self, px, py):
@@ -301,10 +289,8 @@ class GomokuGUI:
     def run(self):
         self.root.mainloop()
 
+# Launcher – ask user for mode
 
-# ───────────────────────────────────
-# Launcher – ask user for mode + depth
-# ───────────────────────────────────
 def main():
     root = tk.Tk()
     root.withdraw()                                     # hide temp window
@@ -317,16 +303,8 @@ def main():
     mode = mode.strip().lower()
     human_vs_ai = (mode != 'a')
 
-    depth_str = simpledialog.askstring("AI depth",
-                                       "Search depth (default 2-3 recommended):",
-                                       parent=root)
-    try:
-        depth = max(1, int(depth_str)) if depth_str else 2
-    except ValueError:
-        depth = 2
-
     root.destroy()                                      # clean up temp window
-    gui = GomokuGUI(human_vs_ai=human_vs_ai, depth=depth)
+    gui = GomokuGUI(human_vs_ai=human_vs_ai)
     gui.run()
 
 

@@ -198,6 +198,66 @@ class GomokuGUI:
         outline = "white" if player == BLACK else "black"
         self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS, cx + self.RADIUS, cy + self.RADIUS,fill=fill, outline=outline, width=2)
 
+    def pixel_to_cell(self, px, py):
+        col = round((px - self.MARGIN) / self.CELL)
+        row = round((py - self.MARGIN) / self.CELL)
+        if in_bounds(row, col):
+            return row, col
+        return None, None
+
+    def on_click(self, event):
+        if self.finished or not self.human_vs_ai or self.current != WHITE:
+            return
+        row, col = self.pixel_to_cell(event.x, event.y)
+        if row is None or self.board[row][col] != EMPTY:
+            return
+        self.place_move(row, col)
+
+    def place_move(self, x, y):
+        self.board[x][y] = self.current
+        self.draw_stone(x, y, self.current)
+
+        winner = game_over(self.board)
+        if winner:
+            self.finished = True
+            self.update_status(winner)
+            return
+
+        self.current = BLACK if self.current == WHITE else WHITE
+        self.update_status()
+
+        if self.finished:
+            return
+        if (self.human_vs_ai and self.current == BLACK) or (not self.human_vs_ai):
+            self.root.after(200, self.ai_turn)
+
+    def ai_turn(self):
+        if self.finished:
+            return
+        move = ai_move(self.board, self.current, self.depth)
+        if move:
+            self.place_move(*move)
+
+    def update_status(self, winner=None):
+        if winner == 'draw':
+            self.status.config(text="Draw!")
+        elif winner == BLACK:
+            self.status.config(text="Black wins!")
+        elif winner == WHITE:
+            self.status.config(text="White wins!")
+        else:
+            if self.human_vs_ai:
+                if self.current == WHITE:
+                    self.status.config(text="Your move (White)")
+                else:
+                    self.status.config(text="AI thinking… (Black)")
+            else:
+                self.status.config(text="AI vs AI – " +
+                                   ("Black's move" if self.current == BLACK else "White's move"))
+
+    def run(self):
+        self.root.mainloop()
+
 def main():
     root = tk.Tk()
     root.withdraw()

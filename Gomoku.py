@@ -1,7 +1,5 @@
 import math
 import random
-import tkinter as tk
-from tkinter import messagebox, simpledialog
 from copy import deepcopy
 
 BOARD_SIZE = 15
@@ -16,7 +14,6 @@ def create_board():
     return [[EMPTY for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
 
 def check_five(board, x, y, player) -> bool:
-    """True if move at (x,y) completes a 5-in-a-row for <player>."""
     for dx, dy in DIRECTIONS:
         cnt = 1
         for sign in (1, -1):
@@ -29,9 +26,7 @@ def check_five(board, x, y, player) -> bool:
             return True
     return False
 
-
 def game_over(board):
-    """Return BLACK / WHITE on win, 'draw' on full board, else None."""
     for x in range(BOARD_SIZE):
         for y in range(BOARD_SIZE):
             p = board[x][y]
@@ -72,7 +67,6 @@ def evaluate_player(board, player) -> int:
                         break
                 if cnt == -1:
                     continue
-                # Check the two ends
                 bx, by = x - dx, y - dy
                 ex, ey = x + dx * WIN_LEN, y + dy * WIN_LEN
                 if in_bounds(bx, by) and board[bx][by] == EMPTY:
@@ -87,7 +81,6 @@ def evaluate(board, player) -> int:
     return evaluate_player(board, player) - evaluate_player(board, opponent)
 
 def get_valid_moves(board):
-    """Return empty cells adjacent to at least one stone (for efficiency)."""
     moves = set()
     for x in range(BOARD_SIZE):
         for y in range(BOARD_SIZE):
@@ -97,7 +90,7 @@ def get_valid_moves(board):
                         nx, ny = x + dx, y + dy
                         if in_bounds(nx, ny) and board[nx][ny] == EMPTY:
                             moves.add((nx, ny))
-    if not moves:                                    # opening move → centre
+    if not moves:
         moves.add((BOARD_SIZE // 2, BOARD_SIZE // 2))
     return list(moves)
 
@@ -114,7 +107,7 @@ def minimax(board, depth, alpha, beta, maximizing, player):
 
     best_move = None
     moves = get_valid_moves(board)
-    moves.sort(key=lambda m: abs(m[0] - BOARD_SIZE // 2) + abs(m[1] - BOARD_SIZE // 2))  # centre first
+    moves.sort(key=lambda m: abs(m[0] - BOARD_SIZE // 2) + abs(m[1] - BOARD_SIZE // 2))
 
     if maximizing:
         value = -math.inf
@@ -142,137 +135,7 @@ def minimax(board, depth, alpha, beta, maximizing, player):
                 break
         return best_move, value
 
-def ai_move(board, player, depth=2):  # depth is always fixed at 2
+def ai_move(board, player, depth=2):
     move, _ = minimax(board, depth, -math.inf, math.inf, True, player)
     return move or random.choice(get_valid_moves(board))
 
-class GomokuGUI:
-    CELL   = 42
-    MARGIN = 40
-    RADIUS = CELL // 2 - 2
-
-    def __init__(self, human_vs_ai: bool):
-        self.human_vs_ai = human_vs_ai
-        self.depth   = 2  # Fixed depth for AI moves
-        self.board   = create_board()
-        self.current = WHITE if human_vs_ai else BLACK   # human starts as White
-        self.finished = False
-
-        # Tk setup
-        self.root = tk.Tk()
-        self.root.title("Gomoku – Five in a Row")
-
-        self.status = tk.Label(self.root, font=("Helvetica", 14, "bold"))
-        self.status.pack(pady=4)
-
-        side = self.MARGIN * 2 + self.CELL * (BOARD_SIZE - 1)
-        self.canvas = tk.Canvas(self.root, width=side, height=side, bg="#deb887")
-        self.canvas.pack()
-        self.canvas.bind("<Button-1>", self.on_click)
-
-        self.draw_grid()
-        self.update_status()
-
-        # If AI vs AI and Black starts, kick off first move
-        if not self.human_vs_ai:
-            self.root.after(400, self.ai_turn)
-
-    def draw_grid(self):
-        for i in range(BOARD_SIZE):
-            pos = self.MARGIN + i * self.CELL
-            self.canvas.create_line(self.MARGIN, pos,
-                                    self.MARGIN + self.CELL * (BOARD_SIZE - 1), pos)
-            self.canvas.create_line(pos, self.MARGIN,
-                                    pos, self.MARGIN + self.CELL * (BOARD_SIZE - 1))
-
-        for i in (3, 7, 11):
-            for j in (3, 7, 11):
-                cx = self.MARGIN + i * self.CELL
-                cy = self.MARGIN + j * self.CELL
-                self.canvas.create_oval(cx - 3, cy - 3, cx + 3, cy + 3, fill="black")
-
-    def draw_stone(self, x, y, player):
-        cx = self.MARGIN + y * self.CELL
-        cy = self.MARGIN + x * self.CELL
-        fill = "black" if player == BLACK else "white"
-        outline = "white" if player == BLACK else "black"
-        self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS, cx + self.RADIUS, cy + self.RADIUS,fill=fill, outline=outline, width=2)
-
-    def pixel_to_cell(self, px, py):
-        col = round((px - self.MARGIN) / self.CELL)
-        row = round((py - self.MARGIN) / self.CELL)
-        if in_bounds(row, col):
-            return row, col
-        return None, None
-
-    def on_click(self, event):
-        if self.finished or not self.human_vs_ai or self.current != WHITE:
-            return
-        row, col = self.pixel_to_cell(event.x, event.y)
-        if row is None or self.board[row][col] != EMPTY:
-            return
-        self.place_move(row, col)
-
-    def place_move(self, x, y):
-        self.board[x][y] = self.current
-        self.draw_stone(x, y, self.current)
-
-        winner = game_over(self.board)
-        if winner:
-            self.finished = True
-            self.update_status(winner)
-            return
-
-        self.current = BLACK if self.current == WHITE else WHITE
-        self.update_status()
-
-        if self.finished:
-            return
-        if (self.human_vs_ai and self.current == BLACK) or (not self.human_vs_ai):
-            self.root.after(200, self.ai_turn)
-
-    def ai_turn(self):
-        if self.finished:
-            return
-        move = ai_move(self.board, self.current, self.depth)
-        if move:
-            self.place_move(*move)
-
-    def update_status(self, winner=None):
-        if winner == 'draw':
-            self.status.config(text="Draw!")
-        elif winner == BLACK:
-            self.status.config(text="Black wins!")
-        elif winner == WHITE:
-            self.status.config(text="White wins!")
-        else:
-            if self.human_vs_ai:
-                if self.current == WHITE:
-                    self.status.config(text="Your move (White)")
-                else:
-                    self.status.config(text="AI thinking… (Black)")
-            else:
-                self.status.config(text="AI vs AI – " +
-                                   ("Black's move" if self.current == BLACK else "White's move"))
-
-    def run(self):
-        self.root.mainloop()
-
-def main():
-    root = tk.Tk()
-    root.withdraw()
-
-    mode = simpledialog.askstring("Choose mode",
-                                  "Enter H for Human vs AI, A for AI vs AI:",
-                                  parent=root)
-    if not mode:
-        return
-    mode = mode.strip().lower()
-    human_vs_ai = (mode != 'a')
-
-    root.destroy()
-    gui = GomokuGUI(human_vs_ai=human_vs_ai)
-    gui.run()
-
-if __name__ == "__main__":
-    main()

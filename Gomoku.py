@@ -153,12 +153,11 @@ class GomokuGUI:
 
     def __init__(self, human_vs_ai: bool):
         self.human_vs_ai = human_vs_ai
-        self.depth   = 2  # Fixed depth for AI moves
+        self.depth   = 2  # AI search depth
         self.board   = create_board()
-        self.current = WHITE if human_vs_ai else BLACK   # human starts as White
+        self.current = WHITE if human_vs_ai else BLACK  # Who starts
         self.finished = False
 
-        # Tk setup
         self.root = tk.Tk()
         self.root.title("Gomoku – Five in a Row")
 
@@ -173,11 +172,12 @@ class GomokuGUI:
         self.draw_grid()
         self.update_status()
 
-        # If AI vs AI and Black starts, kick off first move
+        # Start AI vs AI first move if applicable
         if not self.human_vs_ai:
             self.root.after(400, self.ai_turn)
 
     def draw_grid(self):
+        # Draw board lines and reference dots
         for i in range(BOARD_SIZE):
             pos = self.MARGIN + i * self.CELL
             self.canvas.create_line(self.MARGIN, pos,
@@ -192,13 +192,17 @@ class GomokuGUI:
                 self.canvas.create_oval(cx - 3, cy - 3, cx + 3, cy + 3, fill="black")
 
     def draw_stone(self, x, y, player):
+        # Draw stone of current player at (x, y)
         cx = self.MARGIN + y * self.CELL
         cy = self.MARGIN + x * self.CELL
         fill = "black" if player == BLACK else "white"
         outline = "white" if player == BLACK else "black"
-        self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS, cx + self.RADIUS, cy + self.RADIUS,fill=fill, outline=outline, width=2)
+        self.canvas.create_oval(cx - self.RADIUS, cy - self.RADIUS,
+                                cx + self.RADIUS, cy + self.RADIUS,
+                                fill=fill, outline=outline, width=2)
 
     def pixel_to_cell(self, px, py):
+        # Convert pixel coordinates to board cell
         col = round((px - self.MARGIN) / self.CELL)
         row = round((py - self.MARGIN) / self.CELL)
         if in_bounds(row, col):
@@ -206,6 +210,7 @@ class GomokuGUI:
         return None, None
 
     def on_click(self, event):
+        # Handle human player's click
         if self.finished or not self.human_vs_ai or self.current != WHITE:
             return
         row, col = self.pixel_to_cell(event.x, event.y)
@@ -214,6 +219,7 @@ class GomokuGUI:
         self.place_move(row, col)
 
     def place_move(self, x, y):
+        # Place a move and check for game end
         self.board[x][y] = self.current
         self.draw_stone(x, y, self.current)
 
@@ -228,10 +234,12 @@ class GomokuGUI:
 
         if self.finished:
             return
+        # Trigger AI move if needed
         if (self.human_vs_ai and self.current == BLACK) or (not self.human_vs_ai):
             self.root.after(200, self.ai_turn)
 
     def ai_turn(self):
+        # Execute AI move
         if self.finished:
             return
         move = ai_move(self.board, self.current, self.depth)
@@ -239,6 +247,7 @@ class GomokuGUI:
             self.place_move(*move)
 
     def update_status(self, winner=None):
+        # Update status label based on game state
         if winner == 'draw':
             self.status.config(text="Draw!")
         elif winner == BLACK:
@@ -256,7 +265,9 @@ class GomokuGUI:
                                    ("Black's move" if self.current == BLACK else "White's move"))
 
     def run(self):
+        # Start the GUI event loop
         self.root.mainloop()
+
 
 def main():
     root = tk.Tk()
